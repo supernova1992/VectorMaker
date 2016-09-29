@@ -2,6 +2,7 @@ import tkinter
 import re
 from string import *
 from tkinter import *
+import os
 
 class Application(Frame):
 	def createWidgets(self):
@@ -10,16 +11,23 @@ class Application(Frame):
 		self.QUIT["fg"] = "red"
 		self.QUIT["command"] = self.quit
 		
-		self.QUIT.grid(row=3,column=1)
+		self.QUIT.grid(row=4,column=1)
 		
 		self.submit_button = Button(self)
 		self.submit_button["text"] = "submit"
 		self.submit_button["command"] = self.submit_method
 		
-		self.submit_button.grid(row=3, column=0)
+		self.submit_button.grid(row=4, column=0)
 		
+		self.instruct = Label(self,text="Select your experiment:")
+		self.instruct.grid(row=2,column=0)
 		self.clone_type = Listbox(self)
-		self.clone_type.grid(row=0,column=0)
+		self.clone_type.grid(row=3,column=0)
+		
+		self.l_name = Label(self,text="Final Vector Name:")
+		self.l_name.grid(row=0,column=0)
+		self.final_name = Entry(self)
+		self.final_name.grid(row=1,column=0)
 		
 		for item in ["Gateway","RNAi","TOPO"]:
 			self.clone_type.insert(END, item)
@@ -28,6 +36,21 @@ class Application(Frame):
 		Frame.__init__(self, master)
 		self.grid()
 		self.createWidgets()
+		print(os.getcwd())
+	
+	def writeOut(self, final):
+		#write out the final vector to fasta file
+		f = open(self.final_name.get()+".fas",'w')
+		f.write(">"+self.final_name.get()+" | Made with VectorMaker \n"+final)
+		f.close()
+		
+	def restart(self):
+		root.destroy()
+		root= tk()
+		app = Application(master=root)
+		app.mainloop()
+		root.destroy()
+		
 	def forget_me(self, stuff):
 		for item in stuff:
 			item.grid_forget()
@@ -53,8 +76,12 @@ class Application(Frame):
 					return step2
 			except IndexError:
 					print("One or more of the enzymes could not be found in the flank")
+			except ValueError:
+					print("No enzymes were entered")
+			
+			
 			#print step2
-
+			
 			return
 
 	def digest_vector(self, sequence, enzyme1, enzyme2, enzyme3, enzyme4, flank1, flank2):
@@ -70,13 +97,76 @@ class Application(Frame):
 					print(final_vector)
 			except IndexError:
 					print("One or more of the enzymes could not be found in the vector")
-
-			return
+			except ValueError:
+					print("No enzymes were entered")
+			return final_vector
+	def process(self):
+			vector = self.vector_sequence.get("1.0",END)
+			flank1 = self.t_5f.get("1.0",END)
+			flank2 = self.t_3f.get("1.0",END)
+			e1 = self.t_e1.get().upper()
+			e2 = self.t_e2.get().upper()
+			e3 = self.t_e3.get().upper()
+			e4 = self.t_e4.get().upper()
+			v_clean = self.clean_sequence(vector)
+			clean_5 = self.clean_sequence(flank1)
+			clean_3 = self.clean_sequence(flank2)
+			
+			d_5 = self.digest_flank(clean_5, e1, e2)
+			d_3 = self.digest_flank(clean_3, e3, e4)
+			final = self.digest_vector(v_clean, e1,e2,e3,e4, d_5,d_3)
+			#print(final)
+			self.writeOut(final)
+			forget= self.winfo_children()
+			self.forget_me(forget)
+			
+			path = os.getcwd()
+			
+			self.final_text = Label(self, text="Your file has been written to "+path)
+			self.final_text.grid()
+			
+			#self.confirm = Button(self, text="Yes", command=self.restart)
+			#self.confirm.grid()
+			self.QUIT.grid()
+			
 	def RNAi(self):
 		"Creates a vector for RNA interference of a targeted gene"
 		
-		
-		
+			
+		self.l_5f = Label(self,text="5' Flank Sequence:")
+		self.l_5f.grid(row=0,column=0)
+		self.l_3f = Label(self,text="3' Flank Sequence:")
+		self.l_3f.grid(row=1, column=0)
+		self.t_5f = Text(self)
+		self.t_5f.grid(row=0,column=1)
+		self.t_3f = Text(self)
+		self.t_3f.grid(row=1,column=1)
+		self.l_e1 = Label(self,text="Enzyme 1 sequence")
+		self.l_e1.grid(row=2,column=0)
+		self.l_e2 = Label(self,text="Enzyme 2 sequence")
+		self.l_e2.grid(row=3,column=0)
+		self.l_e3 = Label(self,text="Enzyme 3 sequence")
+		self.l_e3.grid(row=4,column=0)
+		self.l_e4 = Label(self,text="Enzyme 4 sequence")
+		self.l_e4.grid(row=5,column=0)
+		self.t_e1 = Entry(self)
+		self.t_e1.grid(row=2,column=1)
+		self.t_e2 = Entry(self)
+		self.t_e2.grid(row=3,column=1)
+		self.t_e3 = Entry(self)
+		self.t_e3.grid(row=4,column=1)
+		self.t_e4 = Entry(self)
+		self.t_e4.grid(row=5,column=1)
+		vector = self.vector_sequence.get("1.0",END)
+		flank1 = self.t_5f.get("1.0",END)
+		flank2 = self.t_3f.get("1.0",END)
+		e1 = self.t_e1.get()
+		e2 = self.t_e2.get()
+		e3 = self.t_e3.get()
+		e4 = self.t_e4.get()
+		self.rnai_button = Button(self,text="Submit",command=self.process)
+		self.rnai_button.grid(row=6,column=0)
+		self.QUIT.grid(row=6,column=1)
 		
 		
 		
@@ -87,14 +177,14 @@ class Application(Frame):
 				#self.lab_seq.grid_forget()
 				#self.vector_sequence.grid_forget()
 				#self.button_method.grid_forget()
-				forget = [self.lab_seq,self.vector_sequence,self.button_method]
+				forget = [self.lab_seq,self.vector_sequence,self.button_method,self.QUIT]
 				self.forget_me(forget)
+				self.RNAi()
 				
-				
-				self.button_method = Button(self)
-				self.button_method["text"] = "submit"
-				self.button_method["command"] = self.RNAi
-				self.button_method.grid(row=3, column=0)
+				#self.button_method = Button(self)
+				#self.button_method["text"] = "submit"
+				#self.button_method["command"] = self.RNAi
+				#self.button_method.grid(row=3, column=0)
 				
 			elif type == "Gateway":
 				print("You have selected Gateway Cloning")
@@ -117,7 +207,7 @@ class Application(Frame):
 		
 		#self.clone_type.grid_forget()
 		#self.submit_button.grid_forget()
-		forget = [self.clone_type,self.submit_button]
+		forget = [self.clone_type,self.submit_button,self.l_name,self.final_name,self.instruct]
 		self.forget_me(forget)
 		
 		self.lab_seq = Label(self,text="Vector Sequence:")
